@@ -1,0 +1,173 @@
+#include <stdio.h>
+
+#define MAX_SPARSE 100  // Max number of non-zero elements in the sparse matrix
+#define MAX_SIZE 10     // Max dimensions for the original matrix
+
+void Sparse(int A[MAX_SIZE][MAX_SIZE], int m, int n, int S[MAX_SPARSE][3]);
+void AddSparse(int S[MAX_SPARSE][3], int T[MAX_SPARSE][3], int result[MAX_SIZE][MAX_SIZE]);
+void ConvertToSparse(int M[MAX_SIZE][MAX_SIZE], int m, int n, int S[MAX_SPARSE][3]);
+void PrintSparse(int S[MAX_SPARSE][3]);
+void PrintMatrix(int M[MAX_SIZE][MAX_SIZE], int m, int n);
+void TransposeMatrix(int M[MAX_SIZE][MAX_SIZE], int m, int n, int T[MAX_SIZE][MAX_SIZE]);
+void ConvertSparseToTransposeSparse(int M[MAX_SIZE][MAX_SIZE], int m, int n, int S[MAX_SPARSE][3]);
+
+int main() {
+    int A[MAX_SIZE][MAX_SIZE], B[MAX_SIZE][MAX_SIZE];
+    int m1, n1, m2, n2;
+    int S[MAX_SPARSE][3], T[MAX_SPARSE][3];
+    int result[MAX_SIZE][MAX_SIZE] = {0}; // Initialize result matrix to 0
+    int resultSparse[MAX_SPARSE][3];
+    int transpose[MAX_SIZE][MAX_SIZE];    // Matrix to store the transpose
+    int transposeSparse[MAX_SPARSE][3];   // Sparse form of the transposed result matrix
+
+    // Input for the first matrix
+    printf("Enter the row and column of the first matrix: ");
+    scanf("%d%d", &m1, &n1);
+    printf("Enter the matrix elements:\n");
+    for (int i = 0; i < m1; i++) {
+        for (int j = 0; j < n1; j++) {
+            scanf("%d", &A[i][j]);
+        }
+    }
+
+    printf("Matrix 1:\n");
+    PrintMatrix(A, m1, n1);
+
+    Sparse(A, m1, n1, S);
+
+    // Input for the second matrix
+    printf("Enter the row and column of the second matrix: ");
+    scanf("%d%d", &m2, &n2);
+    printf("Enter the matrix elements:\n");
+    for (int i = 0; i < m2; i++) {
+        for (int j = 0; j < n2; j++) {
+            scanf("%d", &B[i][j]);
+        }
+    }
+
+    printf("Matrix 2:\n");
+    PrintMatrix(B, m2, n2);
+
+    Sparse(B, m2, n2, T);
+
+    // Adding sparse matrices and storing result in normal form
+    if (m1 == m2 && n1 == n2) {
+        AddSparse(S, T, result);
+        
+        // Print result matrix in normal form
+        printf("Sum of matrices in normal form:\n");
+        PrintMatrix(result, m1, n1);
+        
+        // Convert result matrix to sparse form
+        ConvertToSparse(result, m1, n1, resultSparse);
+
+        // Print result matrix in sparse form
+        printf("Sum of matrices in sparse (tuple) form:\n");
+        PrintSparse(resultSparse);
+
+        // Compute and print the transpose of the result matrix
+        TransposeMatrix(result, m1, n1, transpose);
+        printf("Transpose of the result matrix (normal form):\n");
+        PrintMatrix(transpose, n1, m1);  // Note: Transposed dimensions
+
+        // Convert the transposed result matrix to sparse form
+        ConvertToSparse(transpose, n1, m1, transposeSparse);
+        printf("Transpose of the result matrix (sparse form):\n");
+        PrintSparse(transposeSparse);
+    } else {
+        printf("Incompatible matrix sizes for addition.\n");
+    }
+
+    return 0;
+}
+
+void Sparse(int A[MAX_SIZE][MAX_SIZE], int m, int n, int S[MAX_SPARSE][3]) {
+    int k = 1;
+    S[0][0] = m; 
+    S[0][1] = n;
+    S[0][2] = 0;  // Number of non-zero elements
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            if (A[i][j] != 0) {
+                S[k][0] = i;
+                S[k][1] = j;
+                S[k][2] = A[i][j];
+                k++;
+                S[0][2]++;
+            }
+        }
+    }
+
+    PrintSparse(S);
+}
+
+void AddSparse(int S[MAX_SPARSE][3], int T[MAX_SPARSE][3], int result[MAX_SIZE][MAX_SIZE]) {
+    int r1 = S[0][0], c1 = S[0][1];
+    int r2 = T[0][0], c2 = T[0][1];
+
+    if (r1 != r2 || c1 != c2) {
+        printf("Incompatible matrix size\n");
+        return;
+    }
+
+    int i = 1, j = 1;
+
+    while (i <= S[0][2] || j <= T[0][2]) {
+        if (i <= S[0][2] && (j > T[0][2] || S[i][0] < T[j][0] || (S[i][0] == T[j][0] && S[i][1] < T[j][1]))) {
+            result[S[i][0]][S[i][1]] += S[i][2];
+            i++;
+        } else if (j <= T[0][2] && (i > S[0][2] || T[j][0] < S[i][0] || (T[j][0] == S[i][0] && T[j][1] < S[i][1]))) {
+            result[T[j][0]][T[j][1]] += T[j][2];
+            j++;
+        } else if (i <= S[0][2] && j <= T[0][2] && S[i][0] == T[j][0] && S[i][1] == T[j][1]) {
+            result[S[i][0]][S[i][1]] += S[i][2] + T[j][2];
+            i++;
+            j++;
+        }
+    }
+}
+
+void ConvertToSparse(int M[MAX_SIZE][MAX_SIZE], int m, int n, int S[MAX_SPARSE][3]) {
+    int k = 1;
+    S[0][0] = m; 
+    S[0][1] = n;
+    S[0][2] = 0;  // Number of non-zero elements
+
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            if (M[i][j] != 0) {
+                S[k][0] = i;
+                S[k][1] = j;
+                S[k][2] = M[i][j];
+                k++;
+                S[0][2]++;
+            }
+        }
+    }
+}
+
+void PrintSparse(int S[MAX_SPARSE][3]) {
+    printf("Sparse Matrix (Tuple form):\n");
+    for (int i = 0; i <= S[0][2]; i++) {
+        printf("%d\t%d\t%d\n", S[i][0], S[i][1], S[i][2]);
+    }
+}
+
+void PrintMatrix(int M[MAX_SIZE][MAX_SIZE], int m, int n) {
+    for (int i = 0; i < m; i++) {
+        for (int j = 0; j < n; j++) {
+            printf("%d\t", M[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+void TransposeMatrix(int M[MAX_SIZE][MAX_SIZE], int m, int n, int T[MAX_SIZE][MAX_SIZE]) {
+    // Initialize the transposed matrix with zeros
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            T[i][j] = M[j][i];
+        }
+    }
+}
